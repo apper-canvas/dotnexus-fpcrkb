@@ -57,17 +57,25 @@
   
   /* Base styling for game lines */
   .game-line {
-    @apply absolute bg-surface-300 dark:bg-surface-600 transition-all duration-200;
+    @apply absolute bg-surface-300 dark:bg-surface-600 transition-all duration-200 hover:scale-105;
+    z-index: 5;
   }
   
   /* Horizontal game lines */
   .game-line-horizontal {
-    @apply game-line h-1.5 md:h-2;
+    @apply game-line;
+    height: 4px;
+    margin-top: 4px; /* Center the visible line in the hit area */
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
   }
   
   /* Vertical game lines */
   .game-line-vertical {
-    @apply game-line w-1.5 md:w-2;
+    @apply game-line;
+    width: 4px;
+    margin-left: 4px; /* Center the visible line in the hit area */
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    z-index: 5;
   }
   
   /* Player 1 owned lines */

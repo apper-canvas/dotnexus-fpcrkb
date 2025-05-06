@@ -370,14 +370,14 @@ const MainFeature = () => {
               
               if (isHorizontal) {
                 width = cellSize;
-                height = 4;
+                height = 12; // Increased hit area
                 left = startX;
-                top = startY - 2;
+                top = startY - 6; // Adjusted for the larger hit area
               } else {
-                width = 4;
+                width = 12; // Increased hit area
                 height = cellSize;
-                left = startX - 2;
-                top = startY;
+                left = startX - 6; // Adjusted for the larger hit area
+                top = startY; 
               }
               
               return (
@@ -385,7 +385,7 @@ const MainFeature = () => {
                   key={line.id}
                   className={`
                     ${isHorizontal ? 'game-line-horizontal' : 'game-line-vertical'}
-                    ${!line.drawn && 'cursor-pointer hover:bg-primary'}
+                    ${!line.drawn && 'cursor-pointer hover:bg-primary hover:opacity-70'}
                     ${line.drawn && line.owner === 1 && 'game-line-player1'}
                     ${line.drawn && line.owner === 2 && 'game-line-player2'}
                   `}
@@ -394,7 +394,8 @@ const MainFeature = () => {
                     top: `${top}px`,
                     width: `${width}px`,
                     height: `${height}px`,
-                    transform: isHovered && !line.drawn ? 'scale(1.2)' : 'scale(1)',
+                    transform: isHovered && !line.drawn ? 'scale(1.1)' : 'scale(1)',
+                    zIndex: isHovered ? 10 : 1,
                   }}
                   onMouseEnter={() => !line.drawn && setHoveredLine(line.id)}
                   onMouseLeave={() => setHoveredLine(null)}
