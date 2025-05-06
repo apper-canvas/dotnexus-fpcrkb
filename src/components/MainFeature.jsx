@@ -386,8 +386,8 @@ const MainFeature = () => {
                   className={`
                     ${isHorizontal ? 'game-line-horizontal' : 'game-line-vertical'}
                     ${!line.drawn && 'cursor-pointer hover:bg-primary'}
-                    ${line.drawn && line.owner === 1 && 'bg-player1'}
-                    ${line.drawn && line.owner === 2 && 'bg-player2'}
+                    ${line.drawn && line.owner === 1 && 'game-line-player1'}
+                    ${line.drawn && line.owner === 2 && 'game-line-player2'}
                   `}
                   style={{
                     left: `${left}px`,
