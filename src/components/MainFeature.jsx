@@ -9,19 +9,48 @@ const MainFeature = () => {
   const TrophyIcon = getIcon('Trophy');
   const ArrowRightIcon = getIcon('ArrowRight');
   const SettingsIcon = getIcon('Settings');
+  const UserIcon = getIcon('Users');
+  
+  // Player colors - a palette of distinct colors for up to 4 players
+  const playerColors = {
+    1: {
+      bg: '#3b82f6', // Blue
+      class: 'bg-blue-500'
+    },
+    2: {
+      bg: '#ec4899', // Pink
+      class: 'bg-pink-500'
+    },
+    3: {
+      bg: '#10b981', // Green
+      class: 'bg-green-500'
+    },
+    4: {
+      bg: '#f59e0b', // Amber
+      class: 'bg-amber-500'
+    }
+  };
   
   // Game settings state
   const [gridSize, setGridSize] = useState(5);  // Default 5x5 grid
+  const [playerCount, setPlayerCount] = useState(2); // Default 2 players
   const [showSettings, setShowSettings] = useState(false);
-  const [gameStarted, setGameStarted] = useState(false);
-  
-  // Game state
-  const [currentPlayer, setCurrentPlayer] = useState(1);
-  const [score, setScore] = useState({ player1: 0, player2: 0 });
   const [lines, setLines] = useState([]);
   const [boxes, setBoxes] = useState([]);
   const [hoveredLine, setHoveredLine] = useState(null);
   const [completedBoxes, setCompletedBoxes] = useState([]);
+  const [gameStarted, setGameStarted] = useState(false);
+  
+  // Game state
+  const [currentPlayer, setCurrentPlayer] = useState(1);
+  const [scores, setScores] = useState(() => {
+    // Initialize scores for default player count
+    const initialScores = {};
+    for (let i = 1; i <= playerCount; i++) {
+      initialScores[`player${i}`] = 0;
+    }
+    return initialScores;
+  });
   const [gameOver, setGameOver] = useState(false);
   
   // Generate grid dots
@@ -92,10 +121,18 @@ const MainFeature = () => {
   const [possibleLines, setPossibleLines] = useState(generatePossibleLines());
   const [possibleBoxes, setPossibleBoxes] = useState(generatePossibleBoxes());
   
+  // Initialize scores when player count changes
+  useEffect(() => {
+    const newScores = {};
+    for (let i = 1; i <= playerCount; i++) {
+      newScores[`player${i}`] = scores[`player${i}`] || 0;
+    }
+    setScores(newScores);
+  }, [playerCount]);
+  
   // Reset game
   const resetGame = () => {
     setCurrentPlayer(1);
-    setScore({ player1: 0, player2: 0 });
     setLines([]);
     setBoxes([]);
     setHoveredLine(null);
@@ -106,6 +143,13 @@ const MainFeature = () => {
     setDots(generateDots());
     setPossibleLines(generatePossibleLines());
     setPossibleBoxes(generatePossibleBoxes());
+    
+    // Reset scores for all players
+    const newScores = {};
+    for (let i = 1; i <= playerCount; i++) {
+      newScores[`player${i}`] = 0;
+    }
+    setScores(newScores);
     
     setGameStarted(true);
     toast.info("Game reset! Player 1 starts.");
@@ -118,7 +162,7 @@ const MainFeature = () => {
   
   // Update grid size
   useEffect(() => {
-    if (gameStarted) {
+    if (gameStarted && (gridSize || playerCount)) {
       resetGame();
     }
   }, [gridSize]);
@@ -173,9 +217,9 @@ const MainFeature = () => {
     
     // Update score
     if (boxesCompleted > 0) {
-      setScore((prevScore) => ({
-        ...prevScore,
-        [`player${currentPlayer}`]: prevScore[`player${currentPlayer}`] + boxesCompleted,
+      setScores((prevScores) => ({
+        ...prevScores,
+        [`player${currentPlayer}`]: prevScores[`player${currentPlayer}`] + boxesCompleted,
       }));
       
       toast.success(`Player ${currentPlayer} completed ${boxesCompleted} ${boxesCompleted === 1 ? 'box' : 'boxes'}!`);
@@ -204,12 +248,15 @@ const MainFeature = () => {
     
     // If no box was completed, switch to the other player
     if (!completedAnyBox) {
-      setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
+      // Move to next player in sequence
+      setCurrentPlayer(currentPlayer => {
+        return currentPlayer === playerCount ? 1 : currentPlayer + 1;
+      });
     }
     
     // Check if game is over (all lines are drawn)
     if (newPossibleLines.every((line) => line.drawn)) {
-      const winner = score.player1 > score.player2 ? 1 : score.player1 < score.player2 ? 2 : 0;
+      const winner = determineWinner();
       setGameOver(true);
       
       if (winner === 0) {
@@ -218,6 +265,30 @@ const MainFeature = () => {
         toast.success(`Game over! Player ${winner} wins!`);
       }
     }
+  };
+  
+  // Determine the winner based on scores
+  const determineWinner = () => {
+    let maxScore = -1;
+    let winner = 0;
+    let tied = false;
+    
+    // Find the player with the highest score
+    for (let i = 1; i <= playerCount; i++) {
+      const playerScore = scores[`player${i}`];
+      
+      if (playerScore > maxScore) {
+        maxScore = playerScore;
+        winner = i;
+        tied = false;
+      } else if (playerScore === maxScore) {
+        // We have a tie
+        tied = true;
+      }
+    }
+    
+    // Return 0 for a tie, or the winning player number
+    return tied ? 0 : winner;
   };
   
   // Calculate cell size based on container size and grid size
@@ -273,6 +344,24 @@ const MainFeature = () => {
               
               <div className="flex flex-col md:flex-row gap-6">
                 <div>
+                  <label className="block text-sm font-medium mb-2">Number of Players</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="2"
+                      max="4"
+                      value={playerCount}
+                      onChange={(e) => setPlayerCount(parseInt(e.target.value))}
+                      className="w-32 accent-primary"
+                    />
+                    <div className="flex items-center gap-2 bg-surface-200 dark:bg-surface-700 px-3 py-1 rounded font-medium">
+                      <UserIcon className="w-4 h-4" />
+                      <span>{playerCount}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-l border-surface-200 dark:border-surface-700 pl-6">
                   <label className="block text-sm font-medium mb-2">Grid Size</label>
                   <div className="flex items-center gap-3">
                     <input
@@ -324,11 +413,12 @@ const MainFeature = () => {
           <div className="absolute top-3 left-3 px-3 py-1.5 bg-surface-100 dark:bg-surface-800 rounded-lg text-sm font-medium">
             <span className="mr-2">Current Turn:</span>
             <span 
-              className={`px-2 py-0.5 rounded ${
-                currentPlayer === 1 
-                  ? 'bg-player1 text-white' 
-                  : 'bg-player2 text-white'
-              }`}
+              className={`px-2 py-0.5 rounded text-white`}
+              style={{
+                backgroundColor: playerColors[currentPlayer]?.bg || '#3b82f6',
+                transition: 'background-color 0.3s ease',
+                fontWeight: 'bold'
+              }}
             >
               Player {currentPlayer}
             </span>
@@ -386,8 +476,8 @@ const MainFeature = () => {
                   className={`
                     ${isHorizontal ? 'game-line-horizontal' : 'game-line-vertical'}
                     ${!line.drawn && 'cursor-pointer hover:bg-primary hover:opacity-70'}
-                    ${line.drawn && line.owner === 1 && 'game-line-player1'}
-                    ${line.drawn && line.owner === 2 && 'game-line-player2'}
+                    ${line.drawn ? 'game-line-drawn' : ''}
+                    transition-all duration-200
                   `}
                   style={{
                     left: `${left}px`,
@@ -396,6 +486,7 @@ const MainFeature = () => {
                     height: `${height}px`,
                     transform: isHovered && !line.drawn ? 'scale(1.1)' : 'scale(1)',
                     zIndex: isHovered ? 10 : 1,
+                    backgroundColor: line.drawn ? playerColors[line.owner]?.bg : undefined,
                   }}
                   onMouseEnter={() => !line.drawn && setHoveredLine(line.id)}
                   onMouseLeave={() => setHoveredLine(null)}
@@ -422,7 +513,7 @@ const MainFeature = () => {
                     top: `${y + 2}px`,
                     width: `${cellSize - 4}px`,
                     height: `${cellSize - 4}px`,
-                    backgroundColor: box.owner === 1 ? '#3b82f6' : '#ec4899',
+                    backgroundColor: playerColors[box.owner]?.bg || '#3b82f6',
                   }}
                 />
               );
@@ -445,11 +536,27 @@ const MainFeature = () => {
                   
                   <h3 className="text-xl font-bold mb-2">Game Over!</h3>
                   
-                  {score.player1 === score.player2 ? (
-                    <p className="text-surface-600 dark:text-surface-400 mb-4">It's a tie!</p>
-                  ) : (
+                  {determineWinner() === 0 ? (
                     <p className="text-surface-600 dark:text-surface-400 mb-4">
-                      Player {score.player1 > score.player2 ? '1' : '2'} wins!
+                      It's a tie between 
+                      {Object.entries(scores)
+                        .filter(([_, score], i) => {
+                          // Find the max score
+                          const maxScore = Math.max(...Object.values(scores));
+                          return score === maxScore;
+                        })
+                        .map(([player], i, arr) => {
+                          const playerNum = player.replace('player', '');
+                          return (
+                            <span key={player}>
+                              {i > 0 && i === arr.length - 1 ? ' and ' : i > 0 ? ', ' : ' '}
+                              <span className="font-semibold">Player {playerNum}</span>
+                            </span>
+                          );
+                        })}!
+                    </p>
+                  ) : (<p className="text-surface-600 dark:text-surface-400 mb-4">
+                      Player {determineWinner()} wins!
                     </p>
                   )}
                   
@@ -471,39 +578,33 @@ const MainFeature = () => {
           
           <div className="space-y-4">
             <div className="flex items-center">
-              <div className="w-3 h-10 bg-player1 rounded-l-md"></div>
-              <div className={`flex-1 p-3 rounded-r-md ${currentPlayer === 1 ? 'bg-surface-100 dark:bg-surface-800' : 'bg-white dark:bg-surface-900'}`}>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Player 1</span>
-                  <span className="text-lg font-bold">{score.player1}</span>
-                </div>
-                <div className="mt-1 bg-surface-200 dark:bg-surface-700 h-2 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-player1"
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${possibleBoxes.length > 0 ? (score.player1 / possibleBoxes.length) * 100 : 0}%` }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <div className="w-3 h-10 bg-player2 rounded-l-md"></div>
-              <div className={`flex-1 p-3 rounded-r-md ${currentPlayer === 2 ? 'bg-surface-100 dark:bg-surface-800' : 'bg-white dark:bg-surface-900'}`}>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Player 2</span>
-                  <span className="text-lg font-bold">{score.player2}</span>
-                </div>
-                <div className="mt-1 bg-surface-200 dark:bg-surface-700 h-2 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-player2"
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${possibleBoxes.length > 0 ? (score.player2 / possibleBoxes.length) * 100 : 0}%` }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </div>
-              </div>
+              {/* Dynamic Player List */}
+              {Array.from({ length: playerCount }, (_, i) => {
+                const playerNumber = i + 1;
+                const isCurrentPlayer = currentPlayer === playerNumber;
+                return (
+                  <div key={`player-${playerNumber}`} className="flex-1 mb-2">
+                    <div className="flex items-center">
+                      <div className="w-3 h-10 rounded-l-md" style={{ backgroundColor: playerColors[playerNumber].bg }}></div>
+                      <div className={`flex-1 p-3 rounded-r-md ${isCurrentPlayer ? 'bg-surface-100 dark:bg-surface-800' : 'bg-white dark:bg-surface-900'}`}>
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">Player {playerNumber}</span>
+                          <span className="text-lg font-bold">{scores[`player${playerNumber}`]}</span>
+                        </div>
+                        <div className="mt-1 bg-surface-200 dark:bg-surface-700 h-2 rounded-full overflow-hidden">
+                          <motion.div 
+                            className="h-full"
+                            style={{ backgroundColor: playerColors[playerNumber].bg }}
+                            initial={{ width: '0%' }}
+                            animate={{ width: `${possibleBoxes.length > 0 ? (scores[`player${playerNumber}`] / possibleBoxes.length) * 100 : 0}%` }}
+                            transition={{ duration: 0.5 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
           
@@ -513,7 +614,8 @@ const MainFeature = () => {
               <li>• Click on a line to claim it</li>
               <li>• Complete a box to earn a point and an extra turn</li>
               <li>• Player with the most boxes at the end wins</li>
-            </ul>
+              <li>• Take turns with {playerCount} players</li>
+              <li>• The player with the most boxes at the end wins</li>
           </div>
         </div>
       </div>

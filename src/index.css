@@ -92,3 +92,9 @@
     @apply absolute rounded-md transition-all duration-300;
   }
 }
+  @apply w-4 h-4 rounded-full bg-surface-800 dark:bg-surface-200 border-2 border-surface-900 dark:border-surface-100 z-20;
+.game-line-drawn {
+  @apply shadow-sm z-10;
+/* Game player colors */
+.bg-player1 { @apply bg-blue-500; }
+.bg-player2 { @apply bg-pink-500; }
